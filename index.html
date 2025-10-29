@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Desafio Docente</title>
+<style>
+  body {
+    background-color: #121213;
+    background-image: url('fundo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  h1 { margin-bottom: 10px; }
+
+  .grid {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 8px;
+  }
+
+  .grid-container {
+    position: relative;
+  }
+
+  .grid-container .congratulations,
+  .grid-container .game-over {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 1;
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tile {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #3a3a3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .correct { background-color: #538d4e; border-color: #538d4e; }
+  .present { background-color: #b59f3b; border-color: #b59f3b; }
+  .absent  { background-color: #3a3a3c; border-color: #3a3a3c; }
+
+  input {
+    margin-top: 20px;
+    padding: 10px;
+    width: 200px;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    text-align: center;
+    border: 2px solid #555;
+    border-radius: 5px;
+    background: #1a1a1b;
+    color: white;
+  }
+
+  p { margin-top: 10px; }
+
+  .dica {
+    font-style: italic;
+    color: #ffffff;
+    margin-bottom: 10px;
+  }
+
+  #reiniciar {
+    display: none;
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #538d4e;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  #reiniciar:hover { background-color: #6aaa64; }
+</style>
+</head>
+<body>
+
+  <h1>Desafio Docente</h1>
+  <p class="dica" id="dica"></p>
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+    <img class="congratulations" src="./congratulations-congrats.png" alt="congratulations" width="100%" height="100%">
+    <img class="game-over" src="./game-over.png" alt="game-over" width="100%" height="100%">
+  </div>
+  <input type="text" id="input" placeholder="Digite..." autofocus />
+  <p id="mensagem"></p>
+  <button id="reiniciar">🔁 Jogar Novamente</button>
+
+<script>
+  const palavras = [
+    { "magisterio": "Uma das poucas formas de ascensão social para mulheres de classe média" },
+    { "docente": "As políticas educacionais são o alicerce para o desenvolvimento de qual formação?" },
+    { "renda": "Falta de _________ digna é o problema fundamental." },
+    { "salario": "Fator histórico de crítica e desinteresse pela profissão." },
+    { "apagao": "Ocorre em áreas como Física, Química e Matemática devido à falta de professores habilitados." },
+    { "fisica": "Setor com maiores taxas de desistência e que pode ter um 'apagão'." },
+    { "futuro": "O _________ da educação depende da valorização do professor." },
+    { "formacao": "A _________ continuada é essencial para o fortalecimento da carreira." },
+    { "desafios": "A evasão nas Licenciaturas é um dos principais _________ atuais." },
+    { "politicas": "O futuro da docência depende de _________ públicas consistentes." },
+    { "declinio": "Situação da Licenciatura que intitula o e-book." }
+  ];
+
+  const maxTentativas = 6;
+  const grid = document.getElementById("grid");
+  const input = document.getElementById("input");
+  const mensagem = document.getElementById("mensagem");
+  const dicaEl = document.getElementById("dica");
+  const btnReiniciar = document.getElementById("reiniciar");
+  let tentativaAtual = 0;
+
+  // 🔁 Lista de palavras que ainda não foram usadas
+  let palavrasRestantes = JSON.parse(localStorage.getItem("palavrasRestantes")) || [...palavras];
+
+  function removerAcentos(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  // Função que sorteia uma palavra e remove da lista
+  function sortearPalavra() {
+    if (palavrasRestantes.length === 0) {
+      palavrasRestantes = [...palavras]; // reinicia lista quando todas forem usadas
+    }
+    const indice = Math.floor(Math.random() * palavrasRestantes.length);
+    const sorteada = palavrasRestantes.splice(indice, 1)[0];
+    localStorage.setItem("palavrasRestantes", JSON.stringify(palavrasRestantes)); // salva o estado
+    return sorteada;
+  }
+
+  const palavraObj = sortearPalavra();
+  const palavraChaveOriginal = Object.keys(palavraObj)[0];
+  const palavraChave = palavraChaveOriginal.toUpperCase();
+  const palavraChaveSemAcento = removerAcentos(palavraChave);
+  const dica = Object.values(palavraObj)[0];
+  dicaEl.textContent = `💡 Dica: ${dica}`;
+
+  for (let i = 0; i < maxTentativas; i++) {
+    const row = document.createElement("div");
+    row.classList.add("row");
+    for (let j = 0; j < palavraChave.length; j++) {
+      const tile = document.createElement("div");
+      tile.classList.add("tile");
+      row.appendChild(tile);
+    }
+    grid.appendChild(row);
+  }
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const palavra = input.value.toUpperCase();
+      const palavraSemAcento = removerAcentos(palavra);
+
+      if (palavraSemAcento.length !== palavraChaveSemAcento.length) {
+        mensagem.textContent = `Digite uma palavra com ${palavraChaveSemAcento.length} letras!`;
+        return;
+      }
+      if (tentativaAtual >= maxTentativas) return;
+
+      const row = grid.children[tentativaAtual];
+      const tiles = row.children;
+
+      for (let i = 0; i < palavraChaveSemAcento.length; i++) {
+        tiles[i].textContent = palavra[i];
+        if (palavraSemAcento[i] === palavraChaveSemAcento[i]) {
+          tiles[i].classList.add("correct");
+        } else if (palavraChaveSemAcento.includes(palavraSemAcento[i])) {
+          tiles[i].classList.add("present");
+        } else {
+          tiles[i].classList.add("absent");
+        }
+      }
+
+      if (palavraSemAcento === palavraChaveSemAcento) {
+        mensagem.textContent = "🎉 Parabéns! Você acertou!";
+        input.disabled = true;
+        document.querySelector(".congratulations").style.opacity = 1;
+        btnReiniciar.style.display = "block";
+      } else {
+        tentativaAtual++;
+        input.value = "";
+        if (tentativaAtual === maxTentativas) {
+          mensagem.textContent = `😢 Fim de jogo! A palavra era ${palavraChave}.`;
+          input.disabled = true;
+          document.querySelector(".game-over").style.opacity = 1;
+          btnReiniciar.style.display = "block";
+        }
+      }
+    }
+  });
+
+  btnReiniciar.addEventListener("click", () => {
+    location.reload();
+  });
+</script>
+</body>
+</html>
